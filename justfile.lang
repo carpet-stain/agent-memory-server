@@ -1,7 +1,7 @@
 # TypeScript overlay verbs (app variant — the lib variant adds `build`; keep
 # the shared verbs in sync). Base verbs (lint, adr) live in justfile.base.
 
-# Run the test suite.
+# Run the test suite (needs DATABASE_URL_TEST — see .envrc.local.example).
 test *args:
     pnpm run test {{ args }}
 
@@ -13,3 +13,11 @@ typecheck:
 # Format TypeScript sources with Biome.
 fmt:
     pnpm run format
+
+# Build to dist/ (the Dockerfile's input).
+build:
+    pnpm run build
+
+# Run the server locally with reload.
+dev:
+    pnpm run dev

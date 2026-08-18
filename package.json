@@ -1,7 +1,7 @@
 {
   "name": "agent-memory-server",
   "version": "0.1.0",
-  "description": "",
+  "description": "Hosted per-role agent memory — MCP-over-HTTP server on Neon Postgres",
   "author": "carpet-stain <5483606+carpet-stain@users.noreply.github.com>",
   "type": "module",
   "private": true,
@@ -10,14 +10,29 @@
     "node": ">=24"
   },
   "scripts": {
-    "start": "tsx src/index.ts",
-    "test": "vitest run tests/",
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "migrate:import": "tsx src/migrate/import.ts",
+    "migrate:reverse-dump": "tsx src/migrate/reverseDump.ts",
+    "migrate:parity-diff": "tsx src/migrate/parityDiff.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ssm": "3.1112.0",
+    "@aws-sdk/credential-providers": "3.1112.0",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "express": "5.2.1",
+    "pg": "8.23.0",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.0",
+    "@types/express": "5.0.6",
     "@types/node": "^24.0.0",
+    "@types/pg": "8.23.1",
     "tsx": "^4.23.0",
     "typescript": "^7.0.0",
     "vitest": "^4.1.0"

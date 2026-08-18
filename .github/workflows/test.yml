@@ -21,6 +21,21 @@ jobs:
     # Job-level `if:` — a skipped-via-if job reads as passing to
     # required-status-check branch protection, same gate as pr-guards.yml.
     if: github.event.pull_request.draft == false
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v7
       # Single pnpm-version authority: the action reads package.json's
@@ -37,4 +52,9 @@ jobs:
         run: pnpm dlx lefthook run pre-commit --all-files --tag lang
       - name: Run language pre-push slice (typecheck; lib adds the build)
         run: pnpm dlx lefthook run pre-push --all-files --tag lang
-      - run: pnpm run test
+      - name: Test
+        env:
+          DATABASE_URL_TEST: postgres://postgres:test@localhost:5432/test
+        run: pnpm run test
+      - name: Build
+        run: pnpm run build
