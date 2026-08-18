@@ -8,3 +8,11 @@ dist/
 # no include mechanism for tracked ignores, so this is the one file that still
 # supersets the base (ADR-0020 in the template's source repo).
 .envrc.local
+
+# TypeScript overlay
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Terraform — .terraform.lock.hcl is tracked, the provider cache isn't
+terraform/.terraform/

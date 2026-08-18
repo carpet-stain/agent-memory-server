@@ -10,3 +10,12 @@
 # bootstrap script. Design and grant detail: dotfiles' AGENTS.md Credentials
 # section, infra ADR-0010.
 export GH_TOKEN=
+
+# A disposable local/dockerized Postgres, never a real Neon database — the
+# concurrency and round-trip tests create and drop tables against this.
+export DATABASE_URL_TEST=
+
+# `pnpm run dev`'s own store. Role→bearer/database mapping the server loads
+# once at boot (see src/config.ts); production values live in SSM
+# (infra#240), never here.
+export AGENT_MEMORY_ROLE_CREDENTIALS=
