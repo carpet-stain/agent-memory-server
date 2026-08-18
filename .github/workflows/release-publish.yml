@@ -25,7 +25,7 @@ jobs:
       # Explicit ref: main — pull_request-triggered checkouts
       # default to a synthetic merge-preview ref, not the branch's actual
       # post-merge state, and we're about to tag real history.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
