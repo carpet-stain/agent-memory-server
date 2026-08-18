@@ -1,0 +1,70 @@
+name: PR code review (advisory)
+
+# Advisory code review of the PR diff by a NON-Anthropic model — a different
+# model's eyes than the one that planned and implemented the change.
+# Deliberately NOT a required status check: an LLM reviewer false-positives,
+# and a rate-limit or outage must never block a merge, so human approval
+# stays the gate.
+#
+# DIY step (scripts/pr-review/run.mjs), not a third-party action — vendored
+# from carpet-stain/dotfiles (project-starter-template#60), which posts real
+# one-click per-line suggestions via `pulls.createReview` instead of a
+# per-file comment block. Eligibility lives in run.mjs itself, not this
+# workflow: a PR triggers the reviewer by carrying the `needs-review` label,
+# or by closing an issue labeled `plan-approved` (a plan-conformance
+# review — the closed issue's consolidated plan is fetched via GraphQL and
+# checked against the diff). Neither label is `architecture`'s ADR-required
+# meaning; both come from this template's own label set. This job always
+# starts, but run.mjs exits before any API call for a PR that qualifies
+# under neither trigger.
+#
+# The reviewer targets any OpenAI-compatible chat-completions endpoint via
+# OPENAI_API_URL / OPENAI_MODEL below — set here to OpenRouter, since that's
+# what a scoped-down credential most commonly is. To use the OpenAI API
+# directly instead, drop those two env lines (run.mjs defaults to
+# gpt-4o-mini on api.openai.com) and put an OpenAI key in the secret. Either
+# way the key lives in the `OPENAI_API_KEY` repo secret — provision it with
+# the elevated session, same pattern as RELEASE_PAT. Without it the job
+# skips cleanly (green), it doesn't fail. MODEL is yours to pick — re-verify
+# a current frontier tier with structured-outputs support (OpenRouter's
+# lineup rotates) against openrouter.ai/models?supported_parameters=structured_outputs
+# before changing it.
+
+on:
+  pull_request:
+    types: [opened, synchronize, labeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for the review API key
+        id: guard
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "OPENAI_API_KEY not set — advisory review skipped." >&2
+            echo "enabled=false" >>"$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >>"$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.enabled == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.guard.outputs.enabled == 'true'
+        with:
+          node-version: "20"
+      - name: Advisory review
+        if: steps.guard.outputs.enabled == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_URL: https://openrouter.ai/api/v1/chat/completions
+          OPENAI_MODEL: openai/gpt-5.6-sol
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: node scripts/pr-review/run.mjs

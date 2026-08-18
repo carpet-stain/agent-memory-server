@@ -1,0 +1,9 @@
+# Release-automation verbs — present only when `include_release_automation`
+# is on at scaffold time, same gating mechanism as cliff.toml and the
+# release-prepare/publish workflows (the conditional filename). Optional
+# import from `justfile` picks it up the same way `justfile.lang` does for a
+# language overlay.
+
+# Preview the version + changelog release automation would compute (no side effects).
+cliff-preview *args:
+    git cliff --bump {{ args }}
