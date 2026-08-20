@@ -1,0 +1,15 @@
+# TypeScript overlay verbs (app variant — the lib variant adds `build`; keep
+# the shared verbs in sync). Base verbs (lint, adr) live in justfile.base.
+
+# Run the test suite.
+test *args:
+    pnpm run test {{ args }}
+
+# Type-check the project (vitest/tsx never do — tsc is the only checker).
+typecheck:
+    pnpm exec tsc --noEmit
+
+# The base's `format` verb owns markdown; a duplicate recipe name hard-errors.
+# Format TypeScript sources with Biome.
+fmt:
+    pnpm run format

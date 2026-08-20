@@ -1,13 +1,7 @@
 name: Publish release
 
-# Triggers on the PR's own close event rather than the resulting push, and
-# gates on the PR's actual head branch name (structural metadata) rather
-# than the merged commit's message text. A push-based trigger checking
-# commit-message text is fragile even under rebase-merge, where the message
-# is already pr-guards.yml-verified: a push-time parse would just duplicate
-# that check instead of trusting it. head.ref isn't editable at merge time,
-# so gating on it here doubles as the verification step this workflow used
-# to need separately.
+# Triggers on PR close + gates on head.ref (immutable structural metadata),
+# not a push-time commit-message parse — that would duplicate pr-guards.yml's check.
 on:
   pull_request:
     types: [closed]
@@ -22,10 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/v')
     steps:
-      # Explicit ref: main — pull_request-triggered checkouts
-      # default to a synthetic merge-preview ref, not the branch's actual
-      # post-merge state, and we're about to tag real history.
-      - uses: actions/checkout@v4
+      # Explicit ref: main — pull_request checkouts default to a
+      # synthetic merge-preview ref, not real post-merge history, and we're about to tag it.
+      - uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
@@ -44,10 +37,8 @@ jobs:
           git tag -a "${{ steps.version.outputs.version }}" -m "${{ steps.version.outputs.version }}"
           git push origin "${{ steps.version.outputs.version }}"
 
-      # Mirrors this repo's documented manual step:
-      # `git cliff --tag vX.Y.Z --latest --strip all`. GITHUB_TOKEN is
-      # needed here too — cliff.toml's [remote.github] resolves this
-      # release's PR links via the API, same as release-prepare.yml.
+      # Mirrors the documented manual step (`git cliff --tag vX.Y.Z --latest --strip all`).
+      # GITHUB_TOKEN resolves PR links via cliff.toml's [remote.github], same as release-prepare.yml.
       - name: Extract this release's notes
         uses: orhun/git-cliff-action@v4
         with:
@@ -65,7 +56,14 @@ jobs:
             --title "${{ steps.version.outputs.version }}" \
             --notes-file RELEASE_NOTES.md
 
-      - name: Delete the ephemeral release branch
+      # delete_branch_on_merge usually sweeps the branch first — deleting an
+      # already-gone ref must not fail the release run (#113).
+      - name: Delete the ephemeral release branch if it still exists
         env:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
-        run: git push origin --delete "$HEAD_REF"
+        run: |
+          if git ls-remote --exit-code origin "refs/heads/$HEAD_REF" >/dev/null; then
+            git push origin --delete "$HEAD_REF"
+          else
+            echo "branch $HEAD_REF already deleted (delete_branch_on_merge) — nothing to do."
+          fi

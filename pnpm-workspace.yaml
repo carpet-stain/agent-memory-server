@@ -1,0 +1,6 @@
+# pnpm's settings home (pnpm ≥10 ignores package.json's `pnpm` field) — not a
+# workspace: no `packages` list, single-package repo.
+# esbuild (via tsx/vitest) has a postinstall pnpm blocks by default, failing
+# `pnpm install`; approving it here keeps the copier post-gen task green.
+allowBuilds:
+  esbuild: true

@@ -1,0 +1,25 @@
+{
+  "name": "agent-memory-server",
+  "version": "0.1.0",
+  "description": "",
+  "author": "carpet-stain <5483606+carpet-stain@users.noreply.github.com>",
+  "type": "module",
+  "private": true,
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "test": "vitest run tests/",
+    "typecheck": "tsc --noEmit",
+    "format": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.0",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.23.0",
+    "typescript": "^7.0.0",
+    "vitest": "^4.1.0"
+  }
+}
