@@ -1,0 +1,14 @@
+name: Epic complete
+
+# Thin caller — the body lives in the template source repo's
+# reusable-epic-complete.yml — pinned to its moving major tag (its ADR-0004/#110).
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  issues: write
+
+jobs:
+  epic:
+    uses: carpet-stain/project-starter-template/.github/workflows/reusable-epic-complete.yml@v1

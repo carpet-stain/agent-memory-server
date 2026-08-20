@@ -1,3 +1,21 @@
-# Language-overlay socket — intentionally empty in the base. A language
-# overlay overwrites this file with its jobs (tagged `lang`); lefthook.yml's
-# `extends` picks it up either way. Never put base jobs here.
+# TypeScript overlay lefthook jobs — overwrites the base's empty stub; picked
+# up by the base-owned lefthook.yml's `extends`. The `lang` tag is what
+# test.yml's CI job selects; keep it on every job here. Base jobs live in
+# lefthook-base.yml — never add them here.
+pre-commit:
+  jobs:
+    - name: biome-check
+      tags: [lang]
+      glob: "*.{ts,tsx,js}"
+      run: pnpm exec biome check {staged_files}
+
+    - name: biome-format
+      tags: [lang]
+      glob: "*.{ts,tsx,js}"
+      run: pnpm exec biome format {staged_files}
+
+pre-push:
+  jobs:
+    - name: tsc
+      tags: [lang]
+      run: pnpm exec tsc --noEmit

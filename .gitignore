@@ -1,4 +1,10 @@
-# git-flow governance template — see README for what this covers.
-# A language overlay's own .gitignore needs hand-merging with this one;
-# copier can't merge text files across templates.
+# Node/TypeScript-generated files
+node_modules/
+dist/
+*.tsbuildinfo
+
+# git-flow base: direnv local overrides (credential scoping). Replayed here
+# because this overlay's .gitignore replaces the base's on layering — git has
+# no include mechanism for tracked ignores, so this is the one file that still
+# supersets the base (ADR-0020 in the template's source repo).
 .envrc.local

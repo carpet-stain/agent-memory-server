@@ -42,13 +42,8 @@ pre-commit:
 
     - name: gitleaks
       tags: [base]
-      # No glob, no {staged_files}: gitleaks is content-based, not
-      # file-type-gated, and must cover .claude/agent-memory/** (the
-      # committed agent-memory store's secrets floor) — never copy the
-      # markdown jobs' exclude list here. Whole-tree dir scan rather than
-      # --staged so the same invocation is meaningful under CI's
-      # `lefthook run pre-commit --all-files`, where nothing is staged.
-      # Allowlist lives in .gitleaks.toml. Lineage: dotfiles#390.
+      # No glob/{staged_files} — content-based scan must cover
+      # .claude/agent-memory/**; never add the markdown exclude list here. Lineage: dotfiles#390.
       run: gitleaks dir . --no-banner --redact
 
     - name: shfmt
@@ -59,10 +54,8 @@ pre-commit:
 
     - name: shellcheck
       tags: [base]
-      # No zsh exclude here (dotfiles' shellcheck excludes zsh for false
-      # positives) — this repo ships no zsh, so that exclude doesn't
-      # travel. .envrc/.envrc.local.example carry `# shellcheck shell=bash`
-      # directives since they have no shebang of their own.
+      # No zsh exclude (dotfiles has one for false positives) — this repo ships no zsh.
+      # .envrc/.envrc.local.example carry `# shellcheck shell=bash` since they lack a shebang.
       glob:
         - "scripts/*.sh"
         - ".envrc"
@@ -85,13 +78,8 @@ pre-commit:
       glob:
         - "justfile"
         - "justfile.base"
-      # --justfile (not a positional, which `just` reads as a recipe name)
-      # takes exactly one path — this repo has two real justfiles (`justfile`
-      # + `justfile.base`, unlike dotfiles' single one), so xargs -n1 runs
-      # the check once per matched file instead of passing both to one
-      # invocation. --fmt --check validates syntax (it must parse to
-      # format) and canonical formatting in one pass. Lineage: dotfiles'
-      # justfile-format job.
+      # --justfile takes exactly one path; this repo has two real justfiles, so
+      # xargs -n1 runs the check per file instead of passing both at once.
       run: echo {staged_files} | xargs -n1 just --fmt --check --justfile
 
     - name: editorconfig-checker
@@ -102,14 +90,8 @@ pre-commit:
       exclude:
         - "CHANGELOG.md"
         - ".claude/agent-memory/**"
-      # The catch-all for files no dedicated formatter covers. Indent checks
-      # are off (--disable-indentation): indentation stays each
-      # per-language formatter's job (shfmt/prettier/yamlfmt), which
-      # understands its own syntax — see dotfiles' inline comment for the
-      # full why. Excludes match the markdown jobs' (CHANGELOG.md is
-      # git-cliff generated once release automation is used;
-      # .claude/agent-memory/** is the committed agent-memory store) —
-      # dotfiles' theme/zellij vendored-content excludes don't travel here.
+      # --disable-indentation: indentation stays each per-language formatter's
+      # job (shfmt/prettier/yamlfmt) — this checker is only the catch-all for the rest.
       run: editorconfig-checker --disable-indentation {staged_files}
 
     - name: envrc-local-example-sync

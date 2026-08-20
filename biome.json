@@ -1,0 +1,15 @@
+{
+  "files": {
+    "includes": ["**/*.ts", "**/*.tsx", "**/*.js", "!**/dist/**"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space"
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true
+    }
+  }
+}

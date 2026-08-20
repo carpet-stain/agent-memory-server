@@ -1,0 +1,40 @@
+name: Test
+
+# Disjoint from the base's lint.yml (ADR-0020) — the overlay's own CI slice.
+# Branch hardcoded to main; edit below if this repo's default differs.
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    # Job-level `if:` — a skipped-via-if job reads as passing to
+    # required-status-check branch protection, same gate as pr-guards.yml.
+    if: github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v7
+      # Single pnpm-version authority: the action reads package.json's
+      # `packageManager` field — never add a version here or `corepack enable`.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # The same lefthook registry contributors run locally — the source of
+      # truth; pre-push carries tsc --noEmit and, for project_kind=lib, the build.
+      - name: Run language lint (lefthook lang slice)
+        run: pnpm dlx lefthook run pre-commit --all-files --tag lang
+      - name: Run language pre-push slice (typecheck; lib adds the build)
+        run: pnpm dlx lefthook run pre-push --all-files --tag lang
+      - run: pnpm run test

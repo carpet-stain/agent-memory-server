@@ -1,23 +1,22 @@
 #!/usr/bin/env bash
-# Advisory nudge, never a hard failure (dotfiles#374/#375): flags a comment
-# block that's an outlier length for a single declaration, as a prompt to
-# re-read it for content already covered elsewhere (design-principles.md's
-# pointer rule) — it doesn't try to detect redundancy itself. THRESHOLD_LINES
-# is calibrated against this repo's own real blocks, not a guess: the
-# densest legitimate single-declaration comment found here is
-# scripts/lint-templates.sh's 12-line j2lint_pass block, so the threshold
-# sits comfortably above it to avoid crying wolf on this repo's normal
-# (dense but non-redundant) style.
+# Blocking signpost cap, not a length nudge — see dotfiles ADR-0044
+# (supersedes ADR-0031). THRESHOLD_LINES is the max allowed, so the
+# comparison is `>`, not `>=`.
 set -uo pipefail
 
-THRESHOLD_LINES=17
+THRESHOLD_LINES=2
 
 comment_prefix_for() {
   case "$1" in
-    *.sh | *.yml | *.yaml | *.yml.jinja | *.yaml.jinja) echo '#' ;;
+    *.sh | *.yml | *.yaml) echo '#' ;;
+    # Conditional-named jinja files (e.g. `{% if x %}foo.yml{% endif %}.jinja`)
+    # put `.yml`/`.yaml` mid-filename, not as a clean suffix.
+    *.yml*.jinja | *.yaml*.jinja) echo '#' ;;
     *) echo '' ;;
   esac
 }
+
+status=0
 
 for file in "$@"; do
   [[ -f "$file" ]] || continue
@@ -26,23 +25,29 @@ for file in "$@"; do
 
   awk -v prefix="$prefix" -v threshold="$THRESHOLD_LINES" -v file="$file" '
     function report() {
-      # A block starting at line 1 (or line 2, right after a shebang) is a
-      # file-header preamble, not a single-declaration comment — out of scope.
-      if (start <= 1) return
-      if (start == 2 && header_shebang) return
-      if (count >= threshold) {
-        printf "%s:%d: %d-line comment block on one declaration — re-read for content already covered elsewhere (design-principles.md pointer rule)\n", file, start, count
+      if (count == 0) return
+      # Out of scope: the file-header preamble (first block, nothing above it
+      # but a shebang or blanks) and ASCII banners — no why in either to relocate.
+      if (!seen_code && !header_seen) { header_seen = 1; return }
+      if (banner_lines == count) return
+      if (count > threshold) {
+        printf "%s:%d: %d-line comment block on one declaration — cap is %d (tripwire + pointer); relocate the why to its ADR/issue home (design-principles.md)\n", file, start, count, threshold
+        found = 1
       }
     }
-    NR == 1 && $0 ~ /^#!/ { header_shebang = 1 }
+    NR == 1 && $0 ~ /^#!/ { next }
     $0 ~ ("^[ \t]*" prefix "([ \t]|$)") {
-      if (count == 0) start = NR
+      if (count == 0) { start = NR; banner_lines = 0 }
       count++
+      body = $0
+      sub("^[ \t]*" prefix "[ \t]*", "", body)
+      sub("[ \t]*$", "", body)
+      if (body ~ /^\+-+\+$/ || body ~ /^\|.*\|$/) banner_lines++
       next
     }
-    { report(); count = 0 }
-    END { report() }
-  ' "$file"
+    { report(); count = 0; banner_lines = 0; if ($0 !~ /^[ \t]*$/) seen_code = 1 }
+    END { report(); exit found ? 1 : 0 }
+  ' "$file" || status=1
 done
 
-exit 0
+exit "$status"

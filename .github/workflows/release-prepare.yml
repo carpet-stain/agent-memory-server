@@ -1,9 +1,7 @@
 name: Prepare release
 
-# Manual trigger only — deciding *when* to cut a release stays a human call;
-# this automates the busywork around that decision (compute the next
-# version, regenerate CHANGELOG.md, open the PR) per the steps documented
-# in AGENTS.md's Git workflow section.
+# Manual trigger only: cutting a release stays a human call. Automates the
+# busywork around it (version, changelog, PR) per AGENTS.md's Git workflow.
 on:
   workflow_dispatch:
     inputs:
@@ -26,18 +24,13 @@ jobs:
     name: prepare release PR
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
 
-      # --bump (no --unreleased) renders the FULL changelog with the newly
-      # computed version applied at the top, matching this repo's
-      # `git cliff --tag vX.Y.Z -o CHANGELOG.md` convention — just with the
-      # version computed from Conventional Commits instead of typed by hand.
-      # GITHUB_TOKEN (read-only default token, not RELEASE_PAT) is enough
-      # here — cliff.toml's [remote.github] only needs to look up each
-      # commit's associated PR, not write anything.
+      # --bump (no --unreleased) renders the full changelog matching this repo's
+      # `git cliff --tag vX.Y.Z -o CHANGELOG.md` convention, version computed not typed.
       - name: Compute next version and update changelog
         id: cliff
         uses: orhun/git-cliff-action@v4
@@ -50,33 +43,15 @@ jobs:
           OUTPUT: CHANGELOG.md
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # A dedicated release/vX.Y.Z branch keeps the version bump and changelog
-      # isolated in their own PR. release-publish.yml deletes this branch once
-      # merged (scoped to the release/v* prefix).
-      #
-      # gh pr create uses RELEASE_PAT, not the default GITHUB_TOKEN: a PR
-      # opened via GITHUB_TOKEN has its pull_request-triggered workflows
-      # (ci.yml, pr-guards.yml) land in an approval-required state instead
-      # of running — deliberate GitHub behavior to prevent recursive
-      # workflow runs, but it means every release PR would otherwise need
-      # a human to manually approve/rerun its own required checks before
-      # branch protection would even allow merging it. RELEASE_PAT is a
-      # fine-grained PAT with Contents + Pull requests write, added as a
-      # repo secret — not covered by this template, see the README.
+      # gh pr create uses RELEASE_PAT, not GITHUB_TOKEN: a PR opened via
+      # GITHUB_TOKEN has its own required checks land approval-required, blocking merge (README).
       - name: Commit changelog on a release branch and open the PR
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PAT }}
           RAW_VERSION: ${{ steps.cliff.outputs.version }}
         run: |
-          # git-cliff infers the vX.Y.Z prefix convention from the latest
-          # existing tag -- with no prior tags (a repo's first-ever
-          # release), it outputs a bare version with no prefix at all.
-          # release-publish.yml's trigger condition and tag/title
-          # construction all assume the v prefix is present (confirmed
-          # live: a first release without this fix left release-publish.yml
-          # silently skipped -- no error, no tag, no release). Normalize
-          # idempotently rather than trust the convention-following: strip
-          # any leading v, then add exactly one.
+          # git-cliff omits the v prefix on a repo's first-ever release (no
+          # prior tag to infer from); release-publish.yml assumes v is present, so normalize idempotently.
           VERSION="v${RAW_VERSION#v}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
