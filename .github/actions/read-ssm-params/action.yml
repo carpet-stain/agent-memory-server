@@ -1,0 +1,71 @@
+name: read-ssm-params
+description: >-
+  Read /cicd/agent-memory/* SecureStrings, mask every value, and expose each
+  as a step output named by its upper-snake leaf (e.g.
+  /cicd/agent-memory/neon-api-key -> NEON_API_KEY). Adapted from infra's
+  action of the same name, but per-name GetParameter calls, not the batch
+  GetParameters — the infra#272 roles grant only the singular action.
+
+inputs:
+  names:
+    description: Whitespace-separated SSM parameter names.
+    required: true
+
+# Composite actions can't declare outputs dynamically — list every leaf a
+# caller may request; unrequested ones are just empty.
+outputs:
+  NEON_API_KEY:
+    description: /cicd/agent-memory/neon-api-key
+    value: ${{ steps.fetch.outputs.NEON_API_KEY }}
+  TF_STATE_PASSPHRASE:
+    description: /cicd/agent-memory/tf-state-passphrase
+    value: ${{ steps.fetch.outputs.TF_STATE_PASSPHRASE }}
+  R2_PLAN_ACCESS_KEY_ID:
+    description: /cicd/agent-memory/r2-plan-access-key-id
+    value: ${{ steps.fetch.outputs.R2_PLAN_ACCESS_KEY_ID }}
+  R2_PLAN_STORAGE_TOKEN:
+    description: /cicd/agent-memory/r2-plan-storage-token
+    value: ${{ steps.fetch.outputs.R2_PLAN_STORAGE_TOKEN }}
+  R2_APPLY_ACCESS_KEY_ID:
+    description: /cicd/agent-memory/r2-apply-access-key-id
+    value: ${{ steps.fetch.outputs.R2_APPLY_ACCESS_KEY_ID }}
+  R2_APPLY_STORAGE_TOKEN:
+    description: /cicd/agent-memory/r2-apply-storage-token
+    value: ${{ steps.fetch.outputs.R2_APPLY_STORAGE_TOKEN }}
+  R2_ACCOUNT_ID:
+    description: /cicd/agent-memory/r2-account-id
+    value: ${{ steps.fetch.outputs.R2_ACCOUNT_ID }}
+
+runs:
+  using: composite
+  steps:
+    - id: fetch
+      shell: bash
+      env:
+        NAMES: ${{ inputs.names }}
+      run: |
+        set -euo pipefail
+        read -ra names <<<"$NAMES"
+        for name in "${names[@]}"; do
+          if ! value="$(aws ssm get-parameter --with-decryption --name "$name" \
+            --query Parameter.Value --output text)"; then
+            echo "::error::failed reading SSM parameter: $name"
+            exit 1
+          fi
+          if [[ -z "$value" || "$value" == "PLACEHOLDER" ]]; then
+            echo "::error::$name is empty or still PLACEHOLDER — populate it (infra docs/BOOTSTRAP.md §19)"
+            exit 1
+          fi
+          # Mask line by line — a multiline value would defeat a single add-mask.
+          while IFS= read -r line; do
+            echo "::add-mask::$line"
+          done <<<"$value"
+          leaf="${name##*/}"
+          out="$(tr '[:lower:]-' '[:upper:]_' <<<"$leaf")"
+          delim="EOF_$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
+          {
+            echo "${out}<<${delim}"
+            printf '%s\n' "$value"
+            echo "$delim"
+          } >>"$GITHUB_OUTPUT"
+        done

@@ -19,3 +19,10 @@ export DATABASE_URL_TEST=
 # once at boot (see src/config.ts); production values live in SSM
 # (infra#240), never here.
 export AGENT_MEMORY_ROLE_CREDENTIALS=
+
+# Tofu inputs (terraform/variables.tf) — identifiers, not secrets; CI
+# supplies the same three as repo variables (docs/CODING.md). Values come
+# from infra's `just tofu-gcp output` / `just tofu-iam output`.
+export TF_VAR_gcp_project_id=
+export TF_VAR_container_image=
+export TF_VAR_ssm_read_role_arn=

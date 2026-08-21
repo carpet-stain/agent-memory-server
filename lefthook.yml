@@ -1,9 +1,136 @@
-# Composition root — base-owned, never edited by an overlay (ADR-0020 in the
-# template's source repo). Base jobs live in lefthook-base.yml (tagged
-# `base`); lefthook-lang.yml ships here as an empty stub a language overlay
-# overwrites with its jobs (tagged `lang`). Locally every layer's jobs run on
-# commit/push; each CI workflow runs only its own tag slice. Install with
-# `lefthook install`.
-extends:
-  - lefthook-base.yml
-  - lefthook-lang.yml
+# Single lefthook registry — the template's base/lang extends split is
+# collapsed here (infra's shape). Tags scope each CI slice: lint.yml runs
+# `base`, test.yml `lang`, tofu-lint.yml `tofu`; locally every job runs on
+# commit/push. Install with `lefthook install`.
+pre-commit:
+  jobs:
+    - name: actionlint
+      tags: [base]
+      glob:
+        - ".github/workflows/*.yml"
+        - ".github/workflows/*.yaml"
+      run: actionlint {staged_files}
+
+    - name: md-format
+      tags: [base]
+      glob:
+        - "*.md"
+        - "**/*.md"
+      exclude:
+        - "CHANGELOG.md"
+        - ".claude/agent-memory/**"
+      run: prettier --check {staged_files}
+
+    - name: markdownlint
+      tags: [base]
+      glob:
+        - "*.md"
+        - "**/*.md"
+      exclude:
+        - "CHANGELOG.md"
+        - ".claude/agent-memory/**"
+      run: markdownlint-cli2 {staged_files}
+
+    - name: yaml-format
+      tags: [base]
+      glob:
+        - ".github/dependabot.yml"
+        - ".markdownlint-cli2.yaml"
+        - "lefthook.yml"
+      run: yamlfmt -lint {staged_files}
+
+    - name: gitleaks
+      tags: [base]
+      # No glob/{staged_files} — content-based scan must cover
+      # .claude/agent-memory/**; never add the markdown exclude list here. Lineage: dotfiles#390.
+      run: gitleaks dir . --no-banner --redact
+
+    - name: shfmt
+      tags: [base]
+      glob:
+        - "scripts/*.sh"
+      run: shfmt -i 2 -ci -d {staged_files}
+
+    - name: shellcheck
+      tags: [base]
+      # No zsh exclude (dotfiles has one for false positives) — this repo ships no zsh.
+      # .envrc/.envrc.local.example carry `# shellcheck shell=bash` since they lack a shebang.
+      glob:
+        - "scripts/*.sh"
+        - ".envrc"
+        - ".envrc.local.example"
+      run: shellcheck {staged_files}
+
+    - name: comment-concision
+      tags: [base]
+      glob:
+        - "scripts/*.sh"
+        - ".github/workflows/*.yml"
+        - ".github/workflows/*.yaml"
+        - "lefthook.yml"
+      run: scripts/check-comment-concision.sh {staged_files}
+
+    - name: justfile-format
+      tags: [base]
+      glob:
+        - "justfile"
+      run: just --fmt --check --justfile justfile
+
+    - name: editorconfig-checker
+      tags: [base]
+      glob:
+        - "*"
+        - "**/*"
+      exclude:
+        - "CHANGELOG.md"
+        - ".claude/agent-memory/**"
+      # --disable-indentation: indentation stays each per-language formatter's
+      # job (shfmt/prettier/yamlfmt) — this checker is only the catch-all for the rest.
+      run: editorconfig-checker --disable-indentation {staged_files}
+
+    - name: envrc-local-example-sync
+      tags: [base]
+      run: scripts/check-envrc-local-example.sh
+
+    - name: biome-check
+      tags: [lang]
+      glob: "*.{ts,tsx,js}"
+      run: pnpm exec biome check {staged_files}
+
+    - name: biome-format
+      tags: [lang]
+      glob: "*.{ts,tsx,js}"
+      run: pnpm exec biome format {staged_files}
+
+    # Tofu jobs: never `-recursive`/`.` scans — they would descend into
+    # .claude/worktrees checkouts; name the module explicitly.
+    - name: tofu-format
+      tags: [tofu]
+      glob:
+        - "terraform/*.tf"
+        - "terraform/**/*.tf"
+      run: tofu fmt -check terraform
+
+    - name: tofu-lint
+      tags: [tofu]
+      glob:
+        - "terraform/*.tf"
+        - "terraform/**/*.tf"
+      run: tflint --chdir=terraform
+
+    - name: tofu-scan
+      tags: [tofu]
+      glob:
+        - "terraform/*.tf"
+        - "terraform/**/*.tf"
+      run: trivy config --exit-code 1 --quiet terraform
+
+pre-push:
+  jobs:
+    - name: envrc-local-example-sync
+      tags: [base]
+      run: scripts/check-envrc-local-example.sh
+
+    - name: tsc
+      tags: [lang]
+      run: pnpm exec tsc --noEmit

@@ -4,6 +4,6 @@ provider "google" {
 }
 
 # api_key intentionally omitted — the provider reads NEON_API_KEY from the
-# environment (ADR-0046 step 1: exported into this repo's CI apply-env from
-# /infra/neon-api-key). Never put it in a .tf variable.
+# environment, sourced from /cicd/agent-memory/neon-api-key (infra#272's
+# /cicd tier). Never put it in a .tf variable.
 provider "neon" {}
