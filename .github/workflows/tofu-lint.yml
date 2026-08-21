@@ -1,0 +1,51 @@
+# The tofu hygiene slice — runs lefthook.yml's tofu-tagged jobs the way
+# lint.yml runs `base`. Binaries are pinned release downloads, no floating
+# installer actions.
+name: Tofu Lint
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "**.tf"
+      - "**/.terraform.lock.hcl"
+      - "lefthook.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tofu-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: tofu-lint
+    runs-on: ubuntu-latest
+    # Job-level `if:` — a skipped-via-if job reads as passing to
+    # required-status-check branch protection, same gate as pr-guards.yml.
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      - run: npm install --global lefthook
+
+      - name: Install tenv, tflint, trivy (pinned)
+        env:
+          TENV_VERSION: "4.14.8"
+          TFLINT_VERSION: "0.64.0"
+          TRIVY_VERSION: "0.72.0"
+        run: |
+          curl -fsSL "https://github.com/tofuutils/tenv/releases/download/v${TENV_VERSION}/tenv_v${TENV_VERSION}_Linux_x86_64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin tenv tofu
+          curl -fsSL -o /tmp/tflint.zip "https://github.com/terraform-linters/tflint/releases/download/v${TFLINT_VERSION}/tflint_linux_amd64.zip"
+          sudo unzip -q -o /tmp/tflint.zip -d /usr/local/bin
+          curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin trivy
+
+      - name: Run tofu lint slice
+        env:
+          TENV_AUTO_INSTALL: "true"
+        run: just lint --tag tofu --no-tty

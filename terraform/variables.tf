@@ -26,11 +26,6 @@ variable "container_image" {
   type        = string
 }
 
-variable "runtime_service_account_email" {
-  description = "cloud-run-agent-memory@<project>.iam.gserviceaccount.com — the runtime SA infra#240 bootstrapped. The Cloud Run service runs as this identity."
-  type        = string
-}
-
 variable "ssm_read_role_arn" {
   description = "infra#240's agent-memory-ssm-read AWS role ARN — the deployed service assumes this (via GCP-OIDC federation) to read its own secrets from SSM at boot."
   type        = string
@@ -45,6 +40,7 @@ variable "aws_region" {
 variable "ssm_kms_key_id" {
   description = "KMS key for encrypting the SecureString SSM parameters under /runtime/agent-memory/*. Must match what infra#240's agent-memory-ssm-read IAM role was granted kms:Decrypt on."
   type        = string
+  default     = "alias/runtime-secrets"
 }
 
 variable "bearer_token_count" {

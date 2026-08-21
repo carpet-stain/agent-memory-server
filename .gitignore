@@ -14,5 +14,9 @@ node_modules/
 dist/
 *.tsbuildinfo
 
-# Terraform — .terraform.lock.hcl is tracked, the provider cache isn't
+# Terraform — .terraform.lock.hcl is tracked, the provider cache isn't;
+# state and plan files never land in git (docs/CODING.md).
 terraform/.terraform/
+terraform/tfplan
+terraform/*.tfstate
+terraform/*.tfstate.backup

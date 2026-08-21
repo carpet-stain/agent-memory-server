@@ -43,6 +43,8 @@ container boot, never per-request. Nothing under `.envrc.local` is ever a produc
   round-trip tests run against a real Postgres (advisory locks aren't mockable), never a real
   Neon database.
 - `just build` / `just dev` — compile to `dist/`, or run with reload via `tsx`.
+- `just tofu` / `just tofu-apply` — OpenTofu against `terraform/`, behind the local secret gate;
+  CI lint slice is `just lint --tag tofu`. Conventions: `docs/CODING.md`.
 
 ## Where things live
 
@@ -57,8 +59,9 @@ container boot, never per-request. Nothing under `.envrc.local` is ever a produc
 - `src/migrate/` — JSONL→Postgres import, the reverse dump (post-cutover rollback path), and the
   quiesced bidirectional parity diff migration/verify depends on.
 - `terraform/` — consumer-side Neon `project`/`role`/`connection_uri` and the
-  `google_cloud_run_v2_service` resource, per infra#240's consumer/infra boundary. Not applied by
-  this repo's CI without a human running `terraform apply` — see the deploy workflow's own gate.
+  `google_cloud_run_v2_service` resource, per infra#240's consumer/infra boundary. Applied by CI
+  via saved-plan-on-merge (`tofu-plan.yml`/`tofu-apply.yml`, ADR-0002); `docs/CODING.md` is
+  authoritative over generic Terraform conventions.
 - `docs/adr/` — this repo's own ADRs. Point at `carpet-stain/dotfiles`' ADR-0046/0033 rather than
   re-deriving their content; write a new ADR here only for a decision specific to this repo's own
   implementation (e.g. HTTP framework choice, if it ever changes).
