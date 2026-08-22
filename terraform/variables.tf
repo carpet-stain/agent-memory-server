@@ -4,6 +4,11 @@ variable "agent_role" {
   default     = "backlog-manager"
 }
 
+variable "neon_org_id" {
+  description = "Neon organization id (org settings page) — the /cicd API key is org-scoped, so project creation requires it. An identifier, not a secret; supplied as NEON_ORG_ID repo variable / TF_VAR in .envrc.local."
+  type        = string
+}
+
 variable "neon_region_id" {
   description = "Neon region for this project (see the Neon API's region list)."
   type        = string

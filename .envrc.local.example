@@ -21,8 +21,10 @@ export DATABASE_URL_TEST=
 export AGENT_MEMORY_ROLE_CREDENTIALS=
 
 # Tofu inputs (terraform/variables.tf) — identifiers, not secrets; CI
-# supplies the same three as repo variables (docs/CODING.md). Values come
-# from infra's `just tofu-gcp output` / `just tofu-iam output`.
+# supplies the same four as repo variables (docs/CODING.md). Values come
+# from infra's `just tofu-gcp output` / `just tofu-iam output`, and the
+# Neon org id from the org settings page.
+export TF_VAR_neon_org_id=
 export TF_VAR_gcp_project_id=
 export TF_VAR_container_image=
 export TF_VAR_ssm_read_role_arn=

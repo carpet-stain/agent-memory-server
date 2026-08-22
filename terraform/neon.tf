@@ -6,6 +6,7 @@
 # even enumerate a sibling agent's project.
 resource "neon_project" "this" {
   name      = "agent-memory-${var.agent_role}"
+  org_id    = var.neon_org_id
   region_id = var.neon_region_id
 
   # Password storage handled by SSM below, not Neon's own state-side store.

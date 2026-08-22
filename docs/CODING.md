@@ -37,7 +37,7 @@ No standing credential in this repo (ADR-0002 decision 3):
   Keychain (item `infra-aws-local-apply`; override with `WITH_TOFU_SECRETS_KEYCHAIN_ITEM`)
   and fetches the same params. The keypair needs read on `/cicd/agent-memory/*` plus
   `kms:Decrypt` on `alias/cicd-secrets`.
-- Non-secret tofu inputs (the three `TF_VAR_*`) live in `.envrc.local` locally and as repo
+- Non-secret tofu inputs (the four `TF_VAR_*`) live in `.envrc.local` locally and as repo
   variables in CI — see `.envrc.local.example`.
 - The Neon admin credential exists only in encrypted state and the apply job's memory —
   never SSM (ADR-0002 decision 5).
