@@ -7,16 +7,18 @@ output "neon_project_id" {
   value = neon_project.this.id
 }
 
-# Containment (ADR-0002 decision 5): the admin credential exists only in
+# Containment (ADR-0002 decision 5): the credential exists only in
 # encrypted state and the apply job's memory — never SSM, never echoed.
-output "neon_admin_connection_uri" {
-  description = "Neon default-admin URI against the agent database — the CI post-apply migration's GRANT/DDL identity."
-  value       = "postgres://${neon_project.this.database_user}:${neon_project.this.database_password}@${neon_project.this.database_host}/${neon_database.this.name}?sslmode=require"
+# Owner, not the project admin: Neon's admin holds no ADMIN OPTION on
+# API-created roles, so owner connects and grants privileges itself.
+output "neon_owner_connection_uri" {
+  description = "owner-role URI against the agent database — the CI post-apply migration's DDL/grant identity; objects it creates are owner-owned by construction."
+  value       = "postgres://${neon_role.owner.name}:${neon_role.owner.password}@${neon_project.this.database_host}/${neon_database.this.name}?sslmode=require"
   sensitive   = true
 }
 
 output "neon_role_names" {
-  description = "owner/app role names, for the migration's GRANT + SET ROLE."
+  description = "owner/app role names, for the migration's privilege grants."
   value = {
     owner = neon_role.owner.name
     app   = neon_role.app.name

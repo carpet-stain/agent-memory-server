@@ -115,14 +115,13 @@ jobs:
           tofu -chdir=terraform init -input=false
           tofu -chdir=terraform apply -input=false tfplan
 
-          # Post-apply migration: GRANT + schema DDL under SET ROLE owner, as the
-          # Neon admin — masked, never echoed (ADR-0002 decision 5 owns the why).
-          admin_uri="$(tofu -chdir=terraform output -raw neon_admin_connection_uri)"
-          echo "::add-mask::$admin_uri"
-          owner="$(tofu -chdir=terraform output -json neon_role_names | jq -r '.owner')"
+          # Post-apply migration as owner — Neon's admin lacks ADMIN OPTION on
+          # API-created roles; privileges not membership (ADR-0002 decision 5).
+          owner_uri="$(tofu -chdir=terraform output -raw neon_owner_connection_uri)"
+          echo "::add-mask::$owner_uri"
           app="$(tofu -chdir=terraform output -json neon_role_names | jq -r '.app')"
-          psql "$admin_uri" -v ON_ERROR_STOP=1 \
-            -c "GRANT \"${owner}\" TO \"${app}\";" \
-            -c "GRANT \"${owner}\" TO CURRENT_USER;" \
-            -c "SET ROLE \"${owner}\";" \
-            -f src/db/schema.sql
+          psql "$owner_uri" -v ON_ERROR_STOP=1 \
+            -f src/db/schema.sql \
+            -c "GRANT USAGE ON SCHEMA public TO \"${app}\";" \
+            -c "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO \"${app}\";" \
+            -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO \"${app}\";"
