@@ -73,6 +73,7 @@ jobs:
           R2_ACCESS_KEY_ID: ${{ steps.ssm.outputs.R2_PLAN_ACCESS_KEY_ID }}
           R2_STORAGE_TOKEN: ${{ steps.ssm.outputs.R2_PLAN_STORAGE_TOKEN }}
           R2_ACCOUNT_ID: ${{ steps.ssm.outputs.R2_ACCOUNT_ID }}
+          TF_VAR_neon_org_id: ${{ vars.NEON_ORG_ID }}
           TF_VAR_gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
           TF_VAR_container_image: ${{ vars.CONTAINER_IMAGE }}
           TF_VAR_ssm_read_role_arn: ${{ vars.SSM_READ_ROLE_ARN }}
