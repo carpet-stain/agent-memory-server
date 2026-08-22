@@ -51,6 +51,12 @@ resource "google_cloud_run_v2_service" "this" {
         name  = "AGENT_MEMORY_AWS_REGION"
         value = var.aws_region
       }
+      env {
+        # The trust's oaud condition — the code's role-ARN default 403s
+        # (same value infra's dispatch job requests; ADR-0024's pattern).
+        name  = "AGENT_MEMORY_SSM_OIDC_AUDIENCE"
+        value = "sts.amazonaws.com"
+      }
 
       startup_probe {
         http_get {
