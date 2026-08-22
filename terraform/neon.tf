@@ -9,6 +9,10 @@ resource "neon_project" "this" {
   org_id    = var.neon_org_id
   region_id = var.neon_region_id
 
+  # Provider defaults to 24h; the org's plan caps at 6h — creation 400s
+  # above that.
+  history_retention_seconds = 21600
+
   # Password storage handled by SSM below, not Neon's own state-side store.
   store_password = "no"
 }
