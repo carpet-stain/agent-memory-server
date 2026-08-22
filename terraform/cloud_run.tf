@@ -13,7 +13,9 @@ resource "google_cloud_run_v2_service" "this" {
   location = var.gcp_region
   project  = var.gcp_project_id
 
-  deletion_protection = true
+  # Off during bootstrap: the first-apply service is tainted (image was
+  # missing) and replace is blocked at true. Flip once serving (#634).
+  deletion_protection = false
 
   # Locked to the Cloudflare-fronted load balancer infra#250 sets up post-
   # deploy — raw *.run.app stays unreachable (infra#240's cost-DoS fence).
