@@ -4,7 +4,14 @@
 # — infra#246's reasoning: actions:write alone must not be able to apply).
 name: Tofu Apply (dispatch)
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      untaint:
+        description: "Resource address to untaint before planning (recovery from a taint loop, e.g. a deletion_protection'd replace)"
+        required: false
+        default: ""
+        type: string
 
 # Shares the apply queue — never runs beside a merge apply.
 concurrency:
@@ -57,6 +64,7 @@ jobs:
       - name: tofu plan + apply + post-apply migration
         env:
           TENV_AUTO_INSTALL: "true"
+          UNTAINT: ${{ inputs.untaint }}
           NEON_API_KEY: ${{ steps.ssm.outputs.NEON_API_KEY }}
           TF_STATE_PASSPHRASE: ${{ steps.ssm.outputs.TF_STATE_PASSPHRASE }}
           R2_ACCESS_KEY_ID: ${{ steps.ssm.outputs.R2_APPLY_ACCESS_KEY_ID }}
@@ -92,6 +100,9 @@ jobs:
           export TF_ENCRYPTION
 
           tofu -chdir=terraform init -input=false
+          if [[ -n "$UNTAINT" ]]; then
+            tofu -chdir=terraform untaint "$UNTAINT"
+          fi
           tofu -chdir=terraform plan -out=tfplan -input=false
           tofu -chdir=terraform apply -input=false tfplan
 

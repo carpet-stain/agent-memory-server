@@ -13,8 +13,8 @@ resource "neon_project" "this" {
   # above that.
   history_retention_seconds = 21600
 
-  # Password storage handled by SSM below, not Neon's own state-side store.
-  store_password = "no"
+  # store_password="no" was the intent (SSM owns the passwords), but the
+  # API 400s: "opting out ... not supported yet". Revisit when Neon allows it.
 }
 
 # Owner role — never handed to the server. Table/database owners bypass row-
