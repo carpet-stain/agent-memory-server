@@ -1,5 +1,5 @@
 import type { RoleCredential } from "./config.js";
-import { createPool, ensureSchema } from "./db/pool.js";
+import { createPool } from "./db/pool.js";
 import { KnowledgeGraphStore } from "./db/store.js";
 
 export interface RoleContext {
@@ -19,8 +19,9 @@ export class RoleRegistry {
   static async create(credentials: RoleCredential[]): Promise<RoleRegistry> {
     const registry = new RoleRegistry();
     for (const cred of credentials) {
+      // No ensureSchema here: schema DDL is CI-owned, run as `owner` in the
+      // apply workflows — `app` can't (and must never) CREATE (ADR-0002 D5).
       const pool = createPool(cred.databaseUrl);
-      await ensureSchema(pool);
       const ctx: RoleContext = {
         role: cred.role,
         store: new KnowledgeGraphStore(pool),
