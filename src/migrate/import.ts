@@ -1,10 +1,14 @@
-import { createPool, ensureSchema } from "../db/pool.js";
+import { createPool } from "../db/pool.js";
 import { readGraphFromJsonl } from "./jsonl.js";
 
 // Re-runnable: each run makes Postgres mirror the JSONL file's current state
 // exactly (existing rows are cleared first), matching the "import → freeze →
 // cutover" window where JSONL stays authoritative and Postgres can be
 // re-imported as many times as needed before the freeze-point parity diff.
+//
+// No ensureSchema here: schema DDL is CI-owned, run as `owner` in the apply
+// workflows — this runs against the `app` connection string, which can't
+// (and must never) CREATE (ADR-0002 D5, registry.ts's same reasoning).
 export async function importJsonlToPostgres(
   jsonlPath: string,
   databaseUrl: string,
@@ -12,12 +16,16 @@ export async function importJsonlToPostgres(
   const graph = await readGraphFromJsonl(jsonlPath);
   const pool = createPool(databaseUrl);
   try {
-    await ensureSchema(pool);
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
       await client.query("SELECT pg_advisory_xact_lock(1)");
-      await client.query("TRUNCATE relations, entities");
+      // DELETE, not TRUNCATE: `app` holds DML only, same as the server's own
+      // delete_entities/delete_relations tools — TRUNCATE needs a separate
+      // table-level grant app must never hold (ADR-0002 D5's DDL fence).
+      // No FK between the tables (schema.sql), so order doesn't matter.
+      await client.query("DELETE FROM relations");
+      await client.query("DELETE FROM entities");
       for (const e of graph.entities) {
         await client.query(
           "INSERT INTO entities (name, entity_type, observations) VALUES ($1, $2, $3)",
