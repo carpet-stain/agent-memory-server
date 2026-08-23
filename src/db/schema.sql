@@ -10,9 +10,17 @@
 
 create table if not exists entities (
     name text primary key,
-    entity_type text not null check (entity_type in ('project', 'reference', 'user', 'feedback')),
+    entity_type text not null,
     observations text[] not null default '{}'
 );
+
+-- Named + re-applied every run (drop/add, not inline on the column): the
+-- constraint's allowed set has already changed once (repo-map, #634) and
+-- `create table if not exists` no-ops against an existing table, so an
+-- inline check would silently stop tracking edits to this list.
+alter table entities drop constraint if exists entities_entity_type_check;
+alter table entities add constraint entities_entity_type_check
+    check (entity_type in ('project', 'reference', 'user', 'feedback', 'repo-map'));
 
 create table if not exists relations (
     from_entity text not null,

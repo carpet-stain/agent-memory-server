@@ -1,12 +1,15 @@
 import { z } from "zod";
 
-// ADR-0033's four pointer types — narrower than the reference server's
-// free-text entityType, since this store only ever holds the semantic tier.
+// ADR-0033's four pointer types plus `repo-map`, the structural per-repo
+// hook entity carpet-stain/agents' backlog-manager.md documents — narrower
+// than the reference server's free-text entityType, since this store only
+// ever holds the semantic tier.
 export const EntityTypeSchema = z.enum([
   "project",
   "reference",
   "user",
   "feedback",
+  "repo-map",
 ]);
 
 export const EntitySchema = z.object({
