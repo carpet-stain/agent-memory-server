@@ -39,11 +39,11 @@ moved {
 
 locals {
   # Newest-first: clients take the head; the tail stays valid through the
-  # overlap. rfc3339 strings compare lexicographically; ties (both slots
-  # minted in the first apply's second) break to "a", which is fine — both
-  # are equally fresh.
+  # overlap. unix, not rfc3339 — HCL comparison operators take numbers
+  # only. Ties (both slots minted in the first apply's second) break to
+  # "a", which is fine — both are equally fresh.
   bearer_tokens_newest_first = (
-    time_static.bearer_minted["a"].rfc3339 >= time_static.bearer_minted["b"].rfc3339
+    time_static.bearer_minted["a"].unix >= time_static.bearer_minted["b"].unix
     ? [random_password.bearer_token["a"].result, random_password.bearer_token["b"].result]
     : [random_password.bearer_token["b"].result, random_password.bearer_token["a"].result]
   )
