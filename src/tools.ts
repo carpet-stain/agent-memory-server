@@ -7,7 +7,7 @@ import { EntitySchema, RelationSchema } from "./types.js";
 // (the reference server this replaces) tool-for-tool — same names,
 // input/output shapes, and annotations — so no MCP client needs to change
 // how it calls memory, only where. The one deliberate divergence is
-// EntitySchema.entityType, narrowed to ADR-0033's four pointer types.
+// EntitySchema.entityType, narrowed to ADR-0033's pointer types (types.ts).
 export function registerTools(
   server: McpServer,
   store: KnowledgeGraphStore,
