@@ -1,10 +1,15 @@
+# Sensitive: apply logs are public (issue #36) — reachability is ingress's
+# job, keeping the hostname unpublished is this output's.
 output "cloud_run_uri" {
-  description = "The Service's own *.run.app URL — not directly reachable (ingress locked to the load balancer); useful for infra#250's reachability checks and confirming the WIF `sub` claim once deployed."
+  description = "The Service's own *.run.app URL — for infra#250's reachability checks and confirming the WIF `sub` claim once deployed."
   value       = google_cloud_run_v2_service.this.uri
+  sensitive   = true
 }
 
 output "neon_project_id" {
-  value = neon_project.this.id
+  description = "Neon API handle for this project — nothing needs it in a public log (issue #36)."
+  value       = neon_project.this.id
+  sensitive   = true
 }
 
 # Containment (ADR-0002 decision 5): the credential exists only in
@@ -18,11 +23,12 @@ output "neon_owner_connection_uri" {
 }
 
 output "neon_role_names" {
-  description = "owner/app role names, for the migration's privilege grants."
+  description = "owner/app role names, for the migration's privilege grants — login names are half a credential pair (issue #36)."
   value = {
     owner = neon_role.owner.name
     app   = neon_role.app.name
   }
+  sensitive = true
 }
 
 output "bearer_minted" {
@@ -30,10 +36,13 @@ output "bearer_minted" {
   value       = { for slot, minted in time_static.bearer_minted : slot => minted.rfc3339 }
 }
 
+# Sensitive: interpolates var.agent_role, which the public source doesn't
+# carry (issue #36).
 output "ssm_parameter_paths" {
   description = "Where the deployed service reads its own secrets from."
   value = {
     connection_uri = aws_ssm_parameter.connection_uri.name
     bearer_tokens  = aws_ssm_parameter.bearer_tokens.name
   }
+  sensitive = true
 }
