@@ -64,6 +64,7 @@ jobs:
       - name: tofu plan + apply + post-apply migration
         env:
           TENV_AUTO_INSTALL: "true"
+          TENV_GITHUB_TOKEN: ${{ github.token }}
           UNTAINT: ${{ inputs.untaint }}
           NEON_API_KEY: ${{ steps.ssm.outputs.NEON_API_KEY }}
           TF_STATE_PASSPHRASE: ${{ steps.ssm.outputs.TF_STATE_PASSPHRASE }}
