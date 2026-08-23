@@ -57,6 +57,7 @@ jobs:
       - name: Rotate the older bearer slot
         env:
           TENV_AUTO_INSTALL: "true"
+          TENV_GITHUB_TOKEN: ${{ github.token }}
           # NEON_API_KEY only so provider configuration can't fail — the
           # -target scope never plans a Neon resource.
           NEON_API_KEY: ${{ steps.ssm.outputs.NEON_API_KEY }}

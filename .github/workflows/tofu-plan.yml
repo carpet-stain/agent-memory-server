@@ -68,6 +68,7 @@ jobs:
         id: plan
         env:
           TENV_AUTO_INSTALL: "true"
+          TENV_GITHUB_TOKEN: ${{ github.token }}
           NEON_API_KEY: ${{ steps.ssm.outputs.NEON_API_KEY }}
           TF_STATE_PASSPHRASE: ${{ steps.ssm.outputs.TF_STATE_PASSPHRASE }}
           R2_ACCESS_KEY_ID: ${{ steps.ssm.outputs.R2_PLAN_ACCESS_KEY_ID }}

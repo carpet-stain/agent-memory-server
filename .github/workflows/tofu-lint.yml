@@ -48,4 +48,5 @@ jobs:
       - name: Run tofu lint slice
         env:
           TENV_AUTO_INSTALL: "true"
+          TENV_GITHUB_TOKEN: ${{ github.token }}
         run: just lint --tag tofu --no-tty
