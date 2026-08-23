@@ -22,16 +22,7 @@ const SSM_PATH_PREFIX = "/runtime/agent-memory";
 export async function loadRoleCredentialsFromSsm(
   cfg: SsmSecretsConfig,
 ): Promise<RoleCredential[]> {
-  const webIdentityToken = await fetchGcpIdentityToken(
-    cfg.oidcAudience ?? cfg.ssmReadRoleArn,
-  );
-  const credentials = fromWebToken({
-    roleArn: cfg.ssmReadRoleArn,
-    webIdentityToken,
-    roleSessionName: "agent-memory-server-boot",
-  });
-  const client = new SSMClient({ region: cfg.awsRegion, credentials });
-
+  const client = await createSsmClient(cfg);
   const results: RoleCredential[] = [];
   for (const role of cfg.roles) {
     const [databaseUrl, bearerTokensJson] = await Promise.all([
@@ -45,6 +36,37 @@ export async function loadRoleCredentialsFromSsm(
     });
   }
   return results;
+}
+
+// The registry's refresh path (ADR-0003): re-reads only the bearer-tokens
+// parameters, so a rotation reaches running instances without a redeploy.
+// Called on a minutes-scale TTL / unknown-token miss, never per-request —
+// each call re-federates GCP→AWS, cheap at that cadence.
+export async function loadBearerTokensFromSsm(
+  cfg: SsmSecretsConfig,
+): Promise<Map<string, string[]>> {
+  const client = await createSsmClient(cfg);
+  const byRole = new Map<string, string[]>();
+  for (const role of cfg.roles) {
+    const json = await getParameter(
+      client,
+      `${SSM_PATH_PREFIX}/${role}/bearer-tokens`,
+    );
+    byRole.set(role, JSON.parse(json) as string[]);
+  }
+  return byRole;
+}
+
+async function createSsmClient(cfg: SsmSecretsConfig): Promise<SSMClient> {
+  const webIdentityToken = await fetchGcpIdentityToken(
+    cfg.oidcAudience ?? cfg.ssmReadRoleArn,
+  );
+  const credentials = fromWebToken({
+    roleArn: cfg.ssmReadRoleArn,
+    webIdentityToken,
+    roleSessionName: "agent-memory-server",
+  });
+  return new SSMClient({ region: cfg.awsRegion, credentials });
 }
 
 async function getParameter(client: SSMClient, name: string): Promise<string> {

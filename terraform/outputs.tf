@@ -25,6 +25,11 @@ output "neon_role_names" {
   }
 }
 
+output "bearer_minted" {
+  description = "Per-slot mint timestamps — bearer-rotate.yml replaces the older slot (ADR-0003). Timestamps only, never token material."
+  value       = { for slot, minted in time_static.bearer_minted : slot => minted.rfc3339 }
+}
+
 output "ssm_parameter_paths" {
   description = "Where the deployed service reads its own secrets from."
   value = {
