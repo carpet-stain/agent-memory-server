@@ -28,8 +28,9 @@ the one action that needs admin (e.g. branch-protection bootstrap) with
 `env -u GH_TOKEN -u GITHUB_TOKEN gh ...`, never as the session default.
 
 Production secrets (Neon `connection_uri`, per-role bearer tokens) live in AWS SSM under
-`/runtime/agent-memory/*` (infra#240's boundary) — the deployed server reads them once at
-container boot, never per-request. Nothing under `.envrc.local` is ever a production credential;
+`/runtime/agent-memory/*` (infra#240's boundary) — the deployed server reads them at container
+boot and re-reads only the bearer set on a minutes-scale TTL (ADR-0003), never per-request.
+Nothing under `.envrc.local` is ever a production credential;
 `DATABASE_URL_TEST` points at a disposable local/dockerized Postgres only.
 
 ## TypeScript toolchain
@@ -53,7 +54,9 @@ container boot, never per-request. Nothing under `.envrc.local` is ever a produc
 - `src/tools.ts` — the 9-tool MCP surface, mirroring `@modelcontextprotocol/server-memory`'s
   contract (the reference server this replaces) with `entityType` narrowed to ADR-0033's four
   pointer types.
-- `src/auth.ts` / `src/config.ts` — bearer→role→store resolution, loaded once at boot.
+- `src/auth.ts` / `src/config.ts` / `src/registry.ts` — bearer→role→store resolution. Pools are
+  fixed at boot; the bearer set refreshes on a short TTL so a rotation (`bearer-rotate.yml`,
+  ADR-0003) reaches running instances without a redeploy.
 - `src/server.ts` — the streamable-HTTP endpoint (stateless: one `McpServer`+transport per
   request, matching a horizontally-scaled Cloud Run deployment with no sticky sessions).
 - `src/migrate/` — JSONL→Postgres import, the reverse dump (post-cutover rollback path), and the

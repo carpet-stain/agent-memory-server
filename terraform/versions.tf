@@ -20,6 +20,10 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.6"
     }
+    time = {
+      source  = "hashicorp/time"
+      version = "~> 0.13"
+    }
   }
 
   # R2, not AWS S3 (ADR-0002 decision 2): the endpoint and credentials come

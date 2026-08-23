@@ -47,14 +47,3 @@ variable "ssm_kms_key_id" {
   type        = string
   default     = "alias/runtime-secrets"
 }
-
-variable "bearer_token_count" {
-  description = "How many valid bearer tokens to provision (2 during a rotation overlap, 1 otherwise — ADR-0046 §Auth)."
-  type        = number
-  default     = 1
-
-  validation {
-    condition     = var.bearer_token_count == 1 || var.bearer_token_count == 2
-    error_message = "bearer_token_count must be 1 (steady state) or 2 (mid-rotation overlap)."
-  }
-}
