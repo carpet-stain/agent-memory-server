@@ -2,14 +2,18 @@
 
 Hosted per-role agent memory: an MCP-over-HTTP server (TypeScript) on Neon Postgres, plus its
 deploy IaC and consumer-side Neon Terraform. Realizes ADR-0046 (in `carpet-stain/dotfiles`) —
-read that ADR before touching architecture here, not this file.
+read that ADR before touching architecture here, not this file. `README.md` is the human front
+door and owns the pitch; this guide is how to work here. Root `CLAUDE.md` symlinks here (Claude
+Code's entry point) — when added, keep it a symlink, don't fork the content.
 
 ## Git workflow
 
 This repo runs the standard carpet-stain git-flow base: short-lived branches off `main`, draft
 PR at the first commit (`git pr --draft` or equivalent), commit freely, squash to one
 [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/) when ready
-(`git reset --soft origin/main && git commit`), finalize, rebase-merge. This doc is authoritative
+(`git reset --soft origin/main && git commit`), finalize, rebase-merge. `pr-guards.yml` gates
+the finalized PR on exactly one commit with a Conventional-Commit subject (quiet while draft —
+its inline comments own the mechanics). This doc is authoritative
 over generic git conventions on conflict — see `carpet-stain/dotfiles`' `git.md`/`github.md` for
 the baseline this instantiates.
 
