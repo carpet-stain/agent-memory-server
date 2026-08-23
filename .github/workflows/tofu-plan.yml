@@ -69,6 +69,8 @@ jobs:
         env:
           TENV_AUTO_INSTALL: "true"
           TENV_GITHUB_TOKEN: ${{ github.token }}
+          # Held but never exercised under -refresh=false: the provider's
+          # NewClient rejects an empty key at configure time (sdk-go v0.16.0).
           NEON_API_KEY: ${{ steps.ssm.outputs.NEON_API_KEY }}
           TF_STATE_PASSPHRASE: ${{ steps.ssm.outputs.TF_STATE_PASSPHRASE }}
           R2_ACCESS_KEY_ID: ${{ steps.ssm.outputs.R2_PLAN_ACCESS_KEY_ID }}
@@ -106,9 +108,9 @@ jobs:
           export TF_ENCRYPTION
 
           tofu -chdir=terraform init -input=false
-          # -lock=false: the plan-tier R2 token is read-only and cannot take
-          # (or need) the write-based lock.
-          tofu -chdir=terraform plan -out=tfplan -input=false -lock=false
+          # -lock=false: read-only plan-tier R2 token can't lock. -refresh=false: a PR
+          # job must not exercise the Neon writer key (ADR-0029); drift watched on main.
+          tofu -chdir=terraform plan -out=tfplan -input=false -lock=false -refresh=false
           # Same step as plan — TF_ENCRYPTION must be present to decrypt tfplan.
           tofu -chdir=terraform show -no-color tfplan >plan.txt
           echo "tree_sha=$(git rev-parse 'HEAD^{tree}')" >>"$GITHUB_OUTPUT"
