@@ -6,6 +6,9 @@ Date: 2026-08-20
 
 Accepted
 
+Amended by 0004, 2026-08-23 (clause: CI credential tier; clause: migration mechanics; clause:
+apply discipline; clause: GCP apply credential).
+
 ## Context
 
 `terraform/` (landing in #7) is real infrastructure — a Neon project/role/database per agent, an
