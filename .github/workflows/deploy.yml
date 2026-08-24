@@ -1,0 +1,74 @@
+# The keyless build->push->deploy chain ADR-0026 (infra) provisioned but
+# nothing here used yet (#50) — every image so far was a hand-run
+# `gcloud builds submit` during infra's bootstrap. WIF's attribute_condition
+# trusts only the main-branch push subject, so this can never run from a
+# release tag (constraint documented on #50).
+name: Deploy
+
+on:
+  push:
+    branches: ["main"]
+
+# One deploy at a time — a stale build finishing after a newer one would
+# otherwise roll the service backward.
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: build, push, deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Authenticate to GCP (deploy WIF)
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_DEPLOY_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA_EMAIL }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+      # Short SHA (infra BOOTSTRAP §17's dispatch-image convention); a
+      # chore(release) merge also gets tagged vX.Y.Z — see #50.
+      - name: Compute image tags
+        id: tags
+        env:
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          tags="${GITHUB_SHA:0:7}"
+          if [[ "$HEAD_COMMIT_MESSAGE" =~ ^chore\(release\):\ (v[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            tags="$tags ${BASH_REMATCH[1]}"
+          fi
+          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+          echo "primary=${tags%% *}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        env:
+          IMAGE: us-central1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/agent-memory/agent-memory-server
+          TAGS: ${{ steps.tags.outputs.tags }}
+        run: |
+          build_args=()
+          for tag in $TAGS; do
+            build_args+=(-t "${IMAGE}:${tag}")
+          done
+          docker build "${build_args[@]}" .
+          for tag in $TAGS; do
+            docker push "${IMAGE}:${tag}"
+          done
+
+      # service/region match cloud_run.tf's agent_role default. Image-only:
+      # Terraform still owns scaling/env/ingress — see #50.
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: agent-memory-backlog-manager
+          region: us-central1
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          image: us-central1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/agent-memory/agent-memory-server:${{ steps.tags.outputs.primary }}
