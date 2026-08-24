@@ -44,9 +44,9 @@ resource "neon_role" "app" {
 }
 
 # No postgresql provider here: it would authenticate from same-run
-# neon_project attributes — a provider-configuration cycle. GRANT owner TO
-# app and the schema bootstrap run as tofu-apply.yml's post-apply migration
-# instead (ADR-0002 decision 5).
+# neon_project attributes — a provider-configuration cycle. The schema
+# bootstrap and app's privilege grants run as tofu-apply.yml's post-apply
+# migration, connecting as owner (ADR-0002 decision 5, amended by ADR-0004).
 
 locals {
   # Neon's connection string shape: postgres://<role>:<password>@<host>/<database>?sslmode=require
