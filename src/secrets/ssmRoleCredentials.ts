@@ -7,12 +7,13 @@ export interface SsmSecretsConfig {
   roles: string[];
   ssmReadRoleArn: string; // infra#240's break-glass AWS role: agent-memory-ssm-read
   awsRegion: string;
-  // Must match whatever audience value AWS IAM's OIDC identity provider
-  // trust policy expects for the GCP token (infra#240 doesn't spell this
-  // out) — defaults to the role ARN, the common convention, but confirm
-  // against the actual trust policy before relying on it.
+  // Override only if a trust policy pins a non-default oaud (#30).
   oidcAudience?: string;
 }
+
+// agent-memory-ssm-read's trust pins accounts.google.com:oaud to this — the
+// value STS expects for AssumeRoleWithWebIdentity (#30, derived in #25).
+const DEFAULT_OIDC_AUDIENCE = "sts.amazonaws.com";
 
 const SSM_PATH_PREFIX = "/runtime/agent-memory";
 
@@ -59,7 +60,7 @@ export async function loadBearerTokensFromSsm(
 
 async function createSsmClient(cfg: SsmSecretsConfig): Promise<SSMClient> {
   const webIdentityToken = await fetchGcpIdentityToken(
-    cfg.oidcAudience ?? cfg.ssmReadRoleArn,
+    cfg.oidcAudience ?? DEFAULT_OIDC_AUDIENCE,
   );
   const credentials = fromWebToken({
     roleArn: cfg.ssmReadRoleArn,
