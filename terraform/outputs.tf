@@ -1,5 +1,5 @@
-# Sensitive: apply logs are public (issue #36) — reachability is ingress's
-# job, keeping the hostname unpublished is this output's.
+# Sensitive: apply logs are public (issue #36) — IAM is the reachability
+# gate now (infra#323, ADR-0031); unpublished is defense in depth, not the boundary.
 output "cloud_run_uri" {
   description = "The Service's own *.run.app URL — for infra#250's reachability checks and confirming the WIF `sub` claim once deployed."
   value       = google_cloud_run_v2_service.this.uri

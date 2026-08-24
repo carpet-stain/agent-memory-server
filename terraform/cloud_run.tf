@@ -17,9 +17,9 @@ resource "google_cloud_run_v2_service" "this" {
   # missing) and replace is blocked at true. Flip once serving (#634).
   deletion_protection = false
 
-  # Locked to the Cloudflare-fronted load balancer infra#250 sets up post-
-  # deploy — raw *.run.app stays unreachable (infra#240's cost-DoS fence).
-  ingress = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
+  # Open — the cost-DoS fence is the IAM policy staying empty, not ingress
+  # (infra#323, ADR-0031: a Cloudflare Worker mints the only accepted token).
+  ingress = "INGRESS_TRAFFIC_ALL"
 
   template {
     service_account = local.runtime_service_account_email
