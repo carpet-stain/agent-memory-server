@@ -40,7 +40,7 @@ jobs:
       - uses: actions/checkout@v7
       # Single pnpm-version authority: the action reads package.json's
       # `packageManager` field — never add a version here or `corepack enable`.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
