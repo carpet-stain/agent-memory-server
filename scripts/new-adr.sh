@@ -22,6 +22,17 @@ if [[ ! -f "$TEMPLATE" ]]; then
   exit 1
 fi
 
+# Printed, not gated — the call stays human. Keep in sync with
+# docs/adr/README.md § When to write one.
+cat >&2 <<'CHECKLIST'
+Before filling this in, check it clears the bar:
+  - Architecturally significant, cross-cutting, or expensive to reverse?
+  - Not already captured in a plan-approved issue this would just restate?
+  - Reversing it later costs more than a follow-up PR?
+If none apply: a PR description or a code comment is the right home, not an ADR.
+
+CHECKLIST
+
 # Highest existing NNNN prefix, or 0 so the first real ADR after the seed is
 # numbered one past it. 10# forces base-10 so a leading zero isn't read as octal.
 last=$(find "$ADR_DIR" -maxdepth 1 -name '[0-9][0-9][0-9][0-9]-*.md' -exec basename {} \; |
